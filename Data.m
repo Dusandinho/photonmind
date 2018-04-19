@@ -73,7 +73,7 @@ classdef Data < handle
             code = strcat('run;');
             appevalscript(h, code);
 
-            labels = zeros(1, length(obj.outputs));
+            labels = [];
             for i = 1:length(obj.outputs)
                 code = strcat('port = getresult("FDTD::ports::',char(obj.outputs(i).port),'","T");',...
                     'T = port.T;',...
@@ -83,7 +83,7 @@ classdef Data < handle
                     'lam_T_min = port.lambda(find(port.T, min(port.T)));',...
                     'lam_T_max = port.lambda(find(port.T, max(port.T)));');
                 appevalscript(h, code);
-                labels(i) = appgetvar(h, char(obj.outputs(i).attribute))';
+                labels = cat(2, labels, fliplr(appgetvar(h, char(obj.outputs(i).attribute))'));
             end
         end
 
