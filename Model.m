@@ -56,10 +56,11 @@ classdef Model < handle
             error_list_train = zeros(1, num_epochs);
             error_list_validate = zeros(1, num_epochs);
 
-            features = reshape([obj.examples.train.features],...
-                [length(obj.examples.train(1).features) length(obj.examples.train)])';
-            labels = reshape([obj.examples.train.labels],...
-                [length(obj.examples.train(1).labels) length(obj.examples.train)])';
+            sample_size = length(obj.examples.train);
+            features = reshape([obj.examples.train(1:sample_size).features],...
+                [length(obj.examples.train(1).features) sample_size])';
+            labels = reshape([obj.examples.train(1:sample_size).labels],...
+                [length(obj.examples.train(1).labels) sample_size])';
 
             dw1_prev = 0; dw2_prev = 0; db1_prev = 0; db2_prev = 0;
             for i = 1:num_epochs
@@ -163,6 +164,15 @@ classdef Model < handle
 
         function y = descale(obj, values)
             y = obj.label_ranges(1, :) + values.*(obj.label_ranges(2, :) - obj.label_ranges(1, :));
+        end
+
+        function test_transmission(obj, example, subset)
+            subset = obj.examples.validate;
+            figure; hold on;
+            x = linspace(1.4e-6, 1.7e-6, length(subset(example).labels));
+            plot(x, obj.infer(subset(example).features));
+            plot(x, subset(example).labels);
+            legend('Model', 'Simulation');
         end
     end
 end

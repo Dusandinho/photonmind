@@ -25,9 +25,10 @@ classdef Device < handle
                 if condition && labels(1) < best
                     best = labels(1);
                     obj.features = featureset(:, i)';
+                    featureset(:, i)'
                 end
             end
-            disp(['T = ', num2str(best)]);
+            % disp(['T = ', num2str(best)]);
             close(v);
         end
     end

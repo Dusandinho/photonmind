@@ -97,5 +97,16 @@ classdef Data < handle
                 m = m + 1;
             end
         end
+
+        function clean(obj, target)
+            m = 1;
+            while m < length(obj.examples)
+                if min(obj.examples(m).labels) > target
+                    obj.examples(m) = [];
+                    m = m - 1;
+                end
+                m = m + 1;
+            end
+        end
     end
 end

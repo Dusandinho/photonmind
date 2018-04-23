@@ -17,12 +17,13 @@ classdef Circuit < handle
             obj.devices(index) = [];
         end
 
-        function y = run(obj)
+        function run(obj)
             y = obj.source.amplitude;
             for n = 1:length(obj.devices)
-                device_output = obj.devices(n).model.infer(obj.devices(n).features);
-                y = y*device_output(1);
+                device_output = abs(obj.devices(n).model.infer(obj.devices(n).features));
+                y = y.*device_output;
             end
+            plot(y);
         end
     end
 end
