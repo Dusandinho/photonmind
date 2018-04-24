@@ -2,6 +2,7 @@ classdef Mind < Model
     properties
         model
         features
+        preference
     end
     methods
         function obj = Mind(model)
