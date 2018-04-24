@@ -98,10 +98,10 @@ classdef Data < handle
             end
         end
 
-        function clean(obj, target)
+        function remove_bad_spectrums(obj, T_min)
             m = 1;
             while m < length(obj.examples)
-                if min(obj.examples(m).labels) > target
+                if abs(min(obj.examples(m).labels)) < abs(T_min)
                     obj.examples(m) = [];
                     m = m - 1;
                 end

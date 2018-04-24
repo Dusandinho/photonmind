@@ -1,8 +1,12 @@
-classdef Layer
+classdef Layer < handle
     properties
         type
         num_neurons
         activation_function
+        net
+        out
+        dw
+        db
     end
     methods
         function obj = Layer(type, num_neurons, activation_function)
@@ -17,6 +21,11 @@ classdef Layer
             end
         end
 
+        function feed(obj, prev_layer, weights, biases)
+            obj.net = prev_layer.out*weights + biases;
+            obj.out = obj.ACT(obj.net);
+        end
+
         function y = ACT(obj, x)
             switch obj.activation_function
                 case 'sig'
@@ -25,6 +34,8 @@ classdef Layer
                     y = max(0, x);
                 case 'tanh'
                     y = tanh(x);
+                case 'none'
+                    y = x;
             end
         end
 
@@ -36,6 +47,8 @@ classdef Layer
                     y = heaviside(x);
                 case 'tanh'
                     y = 1 - obj.ACT(x).^2;
+                case 'none'
+                    y = 1;
             end
         end
     end
