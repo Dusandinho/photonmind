@@ -51,7 +51,7 @@ classdef Model < handle
                 /obj.layers(length(obj.layers) - 1).num_neurons;
         end
 
-        function train(obj, num_epochs)
+        function train(obj, num_epochs, batch_size)
             v = waitbar(0, 'Training...');
             error_list_train = zeros(1, num_epochs);
             error_list_validate = zeros(1, num_epochs);
@@ -62,38 +62,52 @@ classdef Model < handle
             labels = reshape([obj.examples.train(1:sample_size).labels],...
                 [length(obj.examples.train(1).labels) sample_size])';
 
-            dw1_prev = 0; dw2_prev = 0; db1_prev = 0; db2_prev = 0;
+            switch nargin
+                case 2
+                    batch_size = sample_size;
+            end
+
+            % dw1_prev = 0; dw2_prev = 0; db1_prev = 0; db2_prev = 0;
+
             for i = 1:num_epochs
                 waitbar(i/num_epochs);
 
-                X = obj.scale(features, 'f')*obj.weights{1} + obj.biases{1};
-                S = obj.layers(2).ACT(X);
-                Y = S*obj.weights{2} + obj.biases{2};
-                Z = Y;
+                obj.layers(1).net = obj.scale(features, 'f');
+                obj.layers(1).out = obj.layers(1).net;
+                for n = 2:length(obj.layers)
+                    obj.layers(n).feed(obj.layers(n - 1), obj.weights{n - 1}, obj.biases{n - 1});
+                end
 
-                error = mean(mean(abs(obj.scale(labels, 'l') - Z)));
+                error = mean(mean(abs(obj.scale(labels, 'l') - obj.layers(end).out)));
 
-                dEo = Z - obj.scale(labels, 'l');
-                dZ = ones(size(Y));
-                dY = S;
-                dw2 = dY'*(dEo.*dZ);
-                db2 = ones(length(features), 1)'*(dEo.*dZ);
+                derr = obj.layers(end).out - obj.scale(labels, 'l');
+                dout = ones(size(obj.layers(end).out));
+                dnet = obj.layers(end - 1).out;
+                obj.layers(end).dw = dnet'*(derr.*dout);
+                obj.layers(end).db = ones(length(features), 1)'*(derr.*dout);
 
-                dEh = dEo*obj.weights{2}';
-                dS = obj.layers(2).dACT(X);
-                dX = obj.scale(features, 'f');
-                dw1 = dX'*(dEh.*dS);
-                db1 = ones(length(features), 1)'*(dEh.*dS);
+                for n = (length(obj.layers) - 1):-1:2
+                    derr = derr*obj.weights{n}';
+                    dout = obj.layers(n).dACT(obj.layers(n).net);
+                    dnet = obj.layers(n - 1).out;
+                    obj.layers(n).dw = dnet'*(derr.*dout);
+                    obj.layers(n).db = ones(length(features), 1)'*(derr.*dout);
+                end
 
-                obj.weights{1} = obj.weights{1} - obj.learning_rate*dw1 - obj.momentum*dw1_prev;
-                obj.weights{2} = obj.weights{2} - obj.learning_rate*dw2 - obj.momentum*dw2_prev;
-                obj.biases{1} = obj.biases{1} - obj.learning_rate*db1 - obj.momentum*db1_prev;
-                obj.biases{2} = obj.biases{2} - obj.learning_rate*db2 - obj.momentum*db2_prev;
+                for n = 1:(length(obj.layers) - 1)
+                    obj.weights{n} = obj.weights{n} - obj.learning_rate*obj.layers(n + 1).dw;
+                    obj.biases{n} = obj.biases{n} - obj.learning_rate*obj.layers(n + 1).db;
+                end
 
-                dw1_prev = obj.learning_rate*dw1;
-                dw2_prev = obj.learning_rate*dw2;
-                db1_prev = obj.learning_rate*db1;
-                db2_prev = obj.learning_rate*db2;
+                % obj.weights{1} = obj.weights{1} - obj.learning_rate*dw1 - obj.momentum*dw1_prev
+                % obj.weights{2} = obj.weights{2} - obj.learning_rate*dw2 - obj.momentum*dw2_prev;
+                % obj.biases{1} = obj.biases{1} - obj.learning_rate*db1 - obj.momentum*db1_prev;
+                % obj.biases{2} = obj.biases{2} - obj.learning_rate*db2 - obj.momentum*db2_prev;
+
+                % dw1_prev = obj.learning_rate*dw1;
+                % dw2_prev = obj.learning_rate*dw2;
+                % db1_prev = obj.learning_rate*db1;
+                % db2_prev = obj.learning_rate*db2;
 
                 error_list_train(i) = error;
                 error_list_validate(i) = obj.validate;
@@ -118,16 +132,19 @@ classdef Model < handle
                 [length(obj.examples.test(1).features) length(obj.examples.test)])', false))));
         end
 
-        function Z = infer(obj, features, descale)
+        function y = infer(obj, features, descale)
             switch nargin
                 case 2
                     descale = true;
             end
-            X = obj.scale(features, 'f')*obj.weights{1} + obj.biases{1};
-            S = obj.layers(2).ACT(X);
-            Y = S*obj.weights{2} + obj.biases{2};
-            Z = Y;
-            if descale == true, Z = obj.descale(Z); end
+
+            obj.layers(1).net = obj.scale(features, 'f');
+            obj.layers(1).out = obj.layers(1).net;
+            for n = 2:length(obj.layers)
+                obj.layers(n).feed(obj.layers(n - 1), obj.weights{n - 1}, obj.biases{n - 1});
+            end
+            y = obj.layers(end).out;
+            if descale == true, y = obj.descale(y); end
         end
 
         function reset_weights(obj, num_hidden_neurons)
@@ -167,7 +184,6 @@ classdef Model < handle
         end
 
         function test_transmission(obj, example, subset)
-            subset = obj.examples.validate;
             figure; hold on;
             x = linspace(1.4e-6, 1.7e-6, length(subset(example).labels));
             plot(x, obj.infer(subset(example).features));
