@@ -1,2 +1,2 @@
 # photonmind
-Design photonic integrated circuits with artificial neural networks
+Design photonic integrated circuits with artificial neural networks.
