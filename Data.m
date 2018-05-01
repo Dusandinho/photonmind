@@ -1,13 +1,14 @@
 classdef Data < handle
     properties
-        file
+        file_name
         inputs = struct('structure', {}, 'parameter', {}, 'range', {})
         outputs = struct('port', {}, 'attribute', {})
         examples = struct('features', {}, 'labels', {})
+        wavelengths = [1.4e-6, 1.7e-6]
     end
     methods
         function obj = Data
-            obj.file = input('Enter the FDTD file path: ', 's');
+            obj.file_name = input('Enter the FDTD file path: ', 's');
 
             while length(obj.inputs) < 1 || input('Add another input? Y/N: ', 's') == 'y'
                 obj.inputs(end + 1).structure = input('Enter the structure name: ', 's');
@@ -60,13 +61,15 @@ classdef Data < handle
         end
 
         function labels = simulate(obj, features, h)
-            code = strcat('load("',char(obj.file),'");',...
-                'switchtolayout;');
+            code = strcat('load("',char(obj.file_name),'");',...
+                'switchtolayout;',...
+                'setglobalsource("wavelength start", ',chat(obj.wavelengths(1)),');',...
+                'setglobalsource("wavelength stop", ',chat(obj.wavelengths(2)),');');
             appevalscript(h, code);
 
-            for i = 1:length(obj.inputs)
-                code = strcat('select("',char(obj.inputs(i).structure),'");',...
-                    'set("',char(obj.inputs(i).parameter),'", ',num2str(features(i)),');');
+            for n = 1:length(obj.inputs)
+                code = strcat('select("',char(obj.inputs(n).structure),'");',...
+                    'set("',char(obj.inputs(n).parameter),'", ',num2str(features(n)),');');
                 appevalscript(h, code);
             end
 
@@ -74,8 +77,8 @@ classdef Data < handle
             appevalscript(h, code);
 
             labels = [];
-            for i = 1:length(obj.outputs)
-                code = strcat('port = getresult("FDTD::ports::',char(obj.outputs(i).port),'","T");',...
+            for n = 1:length(obj.outputs)
+                code = strcat('port = getresult("FDTD::ports::',char(obj.outputs(n).port),'","T");',...
                     'T = port.T;',...
                     'lam = port.lambda;',...
                     'T_min = min(port.T);',...
@@ -83,14 +86,16 @@ classdef Data < handle
                     'lam_T_min = port.lambda(find(port.T, min(port.T)));',...
                     'lam_T_max = port.lambda(find(port.T, max(port.T)));');
                 appevalscript(h, code);
-                labels = cat(2, labels, fliplr(appgetvar(h, char(obj.outputs(i).attribute))'));
+                labels = cat(2, labels, fliplr(appgetvar(h, char(obj.outputs(n).attribute))'));
             end
         end
 
-        function trim_transmisison_edges(obj, lam_min, lam_max)
+        function remove_edge_minimums(obj)
+            ind = find(strcmp({obj.outputs.attribute}, 'lam_T_min') == 1);
             m = 1;
             while m < length(obj.examples)
-                if obj.examples(m).labels(2) == lam_min || obj.examples(m).labels(2) == lam_max
+                if obj.examples(m).labels(ind) == obj.wavelengths(1)...
+                    || obj.examples(m).labels(ind) == obj.wavelengths(2)
                     obj.examples(m) = [];
                     m = m - 1;
                 end

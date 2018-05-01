@@ -11,7 +11,7 @@ classdef Model < handle
         label_ranges
     end
     methods
-        function obj = Model(data)
+        function obj = Model(data, invert)
             obj.data = data;
             obj.split_dataset;
             obj.get_data_ranges;
@@ -67,8 +67,6 @@ classdef Model < handle
                     batch_size = sample_size;
             end
 
-            % dw1_prev = 0; dw2_prev = 0; db1_prev = 0; db2_prev = 0;
-
             for i = 1:num_epochs
                 waitbar(i/num_epochs);
 
@@ -94,20 +92,13 @@ classdef Model < handle
                     obj.layers(n).db = ones(length(features), 1)'*(derr.*dout);
                 end
 
-                for n = 1:(length(obj.layers) - 1)
+                for n = 1:length(obj.weights)
                     obj.weights{n} = obj.weights{n} - obj.learning_rate*obj.layers(n + 1).dw;
                     obj.biases{n} = obj.biases{n} - obj.learning_rate*obj.layers(n + 1).db;
+
+                    % obj.layers(n + 1).dw_prev = obj.learning_rate*obj.layers(n).dw;
+                    % obj.layers(n + 1).db_prev = obj.learning_rate*obj.layers(n).db;
                 end
-
-                % obj.weights{1} = obj.weights{1} - obj.learning_rate*dw1 - obj.momentum*dw1_prev
-                % obj.weights{2} = obj.weights{2} - obj.learning_rate*dw2 - obj.momentum*dw2_prev;
-                % obj.biases{1} = obj.biases{1} - obj.learning_rate*db1 - obj.momentum*db1_prev;
-                % obj.biases{2} = obj.biases{2} - obj.learning_rate*db2 - obj.momentum*db2_prev;
-
-                % dw1_prev = obj.learning_rate*dw1;
-                % dw2_prev = obj.learning_rate*dw2;
-                % db1_prev = obj.learning_rate*db1;
-                % db2_prev = obj.learning_rate*db2;
 
                 error_list_train(i) = error;
                 error_list_validate(i) = obj.validate;
@@ -147,18 +138,13 @@ classdef Model < handle
             if descale == true, y = obj.descale(y); end
         end
 
-        function reset_weights(obj, num_hidden_neurons)
-            rng('default');
-            sow1 = size(obj.weights{1});
-            sow2 = size(obj.weights{2});
-            switch nargin
-                case 1
-                    num_hidden_neurons = sow1(2);
+        function reset_weights(obj)
+            for n = 1:length(obj.weights)
+                obj.weights{n} = normrnd(0, 1, [obj.layers(n).num_neurons, obj.layers(n + 1).num_neurons])...
+                /obj.layers(n).num_neurons;
+                obj.biases{n} = normrnd(0, 1, [1, obj.layers(n + 1).num_neurons])...
+                /obj.layers(n).num_neurons;
             end
-            obj.weights{1} = normrnd(0, 1, [sow1(1), num_hidden_neurons])/sow1(1);
-            obj.weights{2} = normrnd(0, 1, [num_hidden_neurons, sow2(2)])/num_hidden_neurons;
-            obj.biases{1} = normrnd(0, 1, [1, num_hidden_neurons])/sow1(1);
-            obj.biases{2} = normrnd(0, 1, [1, sow2(2)])/num_hidden_neurons;
         end
 
         function get_data_ranges(obj)
@@ -183,9 +169,9 @@ classdef Model < handle
             y = obj.label_ranges(1, :) + values.*(obj.label_ranges(2, :) - obj.label_ranges(1, :));
         end
 
-        function test_transmission(obj, example, subset)
+        function test_transmission(obj, subset, example)
             figure; hold on;
-            x = linspace(1.4e-6, 1.7e-6, length(subset(example).labels));
+            x = linspace(obj.data.wavelengths(1), obj.data.wavelengths(2), length(subset(example).labels));
             plot(x, obj.infer(subset(example).features));
             plot(x, subset(example).labels);
             legend('Model', 'Simulation');
