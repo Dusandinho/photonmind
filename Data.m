@@ -113,5 +113,16 @@ classdef Data < handle
                 m = m + 1;
             end
         end
+
+        function find_spectrum_info(obj, example)
+            lam = linspace(obj.wavelengths(1), obj.wavelengths(2), length(example));
+            [pks, locs] = findpeaks(1 - example, 'MinPeakProminence', 0.1);
+            % find_closest_peaks;
+            pks = 1 - pks;
+            locs = lam(locs);
+            FSR = diff(locs);
+            % [row, col] = find(example>0.9 & example<0.7)
+            Q = locs_nearby/FWHM;
+        end
     end
 end
