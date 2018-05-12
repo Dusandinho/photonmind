@@ -62,9 +62,7 @@ classdef Data < handle
 
         function labels = simulate(obj, features, h)
             code = strcat('load("',char(obj.file_name),'");',...
-                'switchtolayout;',...
-                'setglobalsource("wavelength start", ',chat(obj.wavelengths(1)),');',...
-                'setglobalsource("wavelength stop", ',chat(obj.wavelengths(2)),');');
+                'switchtolayout;');
             appevalscript(h, code);
 
             for n = 1:length(obj.inputs)
@@ -93,7 +91,7 @@ classdef Data < handle
         function remove_edge_minimums(obj)
             ind = find(strcmp({obj.outputs.attribute}, 'lam_T_min') == 1);
             m = 1;
-            while m < length(obj.examples)
+            while m <= length(obj.examples)
                 if obj.examples(m).labels(ind) == obj.wavelengths(1)...
                     || obj.examples(m).labels(ind) == obj.wavelengths(2)
                     obj.examples(m) = [];
@@ -105,7 +103,7 @@ classdef Data < handle
 
         function remove_bad_spectrums(obj, T_min)
             m = 1;
-            while m < length(obj.examples)
+            while m <= length(obj.examples)
                 if abs(min(obj.examples(m).labels)) < abs(T_min)
                     obj.examples(m) = [];
                     m = m - 1;
