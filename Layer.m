@@ -31,18 +31,6 @@ classdef Layer < handle
                     y = 1./(1 + exp(-x));
                 case 'relu'
                     y = max(0, x);
-                case 'lrelu'
-                    if x > 0
-                        y = x;
-                    else
-                        y = 0.01*x;
-                    end
-                case 'elu'
-                    if x > 0
-                        y = x;
-                    else
-                        y = exp(x) - 1;
-                    end
                 case 'tanh'
                     y = tanh(x);
                 case 'none'
@@ -56,18 +44,6 @@ classdef Layer < handle
                     y = obj.ACT(x).*(1 - obj.ACT(x));
                 case 'relu'
                     y = double(heaviside(x));
-                case 'lrelu'
-                    if x > 0
-                        y = ones(size(x));
-                    else
-                        y = 0.01*ones(size(x));
-                    end
-                case 'elu'
-                    if x > 0
-                        y = ones(size(x));
-                    else
-                        y = exp(x);
-                    end
                 case 'tanh'
                     y = 1 - obj.ACT(x).^2;
                 case 'none'

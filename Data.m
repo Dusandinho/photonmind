@@ -11,20 +11,18 @@ classdef Data < handle
         end
         
         function add_input(obj, structure, parameter, range)
-            obj.inputs(end + 1).structure = structure;
-            obj.inputs(end).parameter = parameter;
-            obj.inputs(end).range = range;
+            obj.inputs(end + 1) = struct('structure', {structure}, 'parameter', {parameter}, 'range', {range});
         end
         
         function add_output(obj, monitor, attribute)
-            obj.outputs(end + 1).monitor = monitor;
-            obj.outputs(end).attribute = attribute;
+            obj.outputs(end + 1) = struct('monitor', {monitor}, 'attribute', {attribute});
         end
         
         function get_examples_random(obj, num_sim)
             path(path, 'C:\Program Files\Lumerical\fdtd\api\matlab');
             h = appopen('fdtd');
-
+            
+            % create a list of randomized features
             featureset = zeros(num_sim, length(obj.inputs));
             for m = 1:num_sim
                 for n = 1:length(obj.inputs)
@@ -32,10 +30,12 @@ classdef Data < handle
                 end
             end
             
+            % simulate each entry in featureset
+            % store results as a new example
             v = waitbar(0, 'Acquiring data...');
             for m = 1:size(featureset, 1)
                 waitbar(m/size(featureset, 1));
-                labels = obj.simulate(featureset(m, :), h);
+                labels = obj.get_labels(featureset(m, :), h);
                 obj.examples(end + 1).features = featureset(m, :);
                 obj.examples(end).labels = labels;
             end
@@ -51,6 +51,7 @@ classdef Data < handle
             path(path, 'C:\Program Files\Lumerical\device\api\matlab');
             h = appopen('fdtd');
             
+            % create a list of uniformly swept features
             for m = 1:length(obj.inputs)
                 sequence = linspace(obj.inputs(m).range(1), obj.inputs(m).range(2), resolution);
                 sequence = repmat(sequence, [resolution^(length(obj.inputs) - m), 1]);
@@ -58,9 +59,11 @@ classdef Data < handle
             end
             featureset = featureset';
             
+            % simulate each entry in featureset
+            % store results as a new example
             v = waitbar(0, 'Acquiring data...');
             for m = 1:size(featureset, 1)
-                labels = obj.simulate(featureset(m, :), h);
+                labels = obj.get_labels(featureset(m, :), h);
                 obj.examples(end + 1).features = featureset(m, :);
                 obj.examples(end).labels = labels;
                 waitbar(m/size(featureset, 1));
@@ -68,17 +71,20 @@ classdef Data < handle
             close(v);
         end
         
-        function check_single(obj, features)
+        function simulate_single(obj, features)
             path(path, 'C:\Program Files\Lumerical\fdtd\api\matlab');
             h = appopen('fdtd');
-            obj.simulate(features, h);
+            obj.get_labels(features, h);
         end
 
-        function labels = simulate(obj, features, h)
+        function labels = get_labels(obj, features, h)
+            % open file and switch to layout (for changes)
             code = strcat('load("',char(obj.file_name),'");',...
                 'switchtolayout;');
             appevalscript(h, code);
-
+            
+            % automatically change the features (based on the input struct)
+            % THIS MAY BE REWRITTEN FOR CUSTOM NEEDS
             for n = 1:length(obj.inputs)
                 code = strcat('select("',char(obj.inputs(n).structure),'");',...
                     'set("',char(obj.inputs(n).parameter),'", ',num2str(features(n)),');');
@@ -88,32 +94,38 @@ classdef Data < handle
             code = strcat('run;');
             appevalscript(h, code);
             
-%             code = strcat('runanalysis("Qanalysis");',...
-%                 'Q = getresult("Qanalysis", "Q");',...
-%                 'labels = [transpose(Q.Q), transpose(Q.lambda)];');
-            
-            code = strcat('port = getresult("FDTD::ports::port 2", "T");',...
-                'T = port.T;',...
-                'labels = min(T);');
-            appevalscript(h, code);
-            labels = abs(appgetvar(h, 'labels')');
+            % automatically extract the labels (based on the output struct)
+            % THIS MAY BE REWRITTEN FOR CUSTOM NEEDS
+            labels = [];
+            for n = 1:length(obj.outputs)
+                code = strcat('monitor = getresult("',char(obj.outputs(n).monitor),'");',...
+                    'labels = ',char(obj.outputs(n).attribute),';');
+                appevalscript(h, code);
+                labels = cat(2, labels, appgetvar(h, 'labels')');
+            end
         end
         
         function shuffle(obj)
             obj.examples = obj.examples(randperm(length(obj.examples)));
         end
         
-        function map_examples(obj)
+        function map_examples(obj, feature1, feature2)
+            switch nargin
+                case 1
+                    feature1 = 1;
+                    feature2 = 2;
+            end
+            
             features = reshape([obj.examples.features], [length(obj.examples(1).features) length(obj.examples)])';
-            scatter(features(:, 1), features(:, 2));
-            xlim(obj.inputs(1).range);
-            ylim(obj.inputs(2).range);
+            scatter(features(:, feature1), features(:, feature2));
+            xlim(obj.inputs(feature1).range);
+            ylim(obj.inputs(feature2).range);
         end
         
-        function prune_examples(obj, FOM)
+        function prune_examples(obj, threshold)
             m = 1;
             while m <= length(obj.examples)
-                if abs(min(obj.examples(m).labels)) < abs(FOM)
+                if abs(min(obj.examples(m).labels)) < abs(threshold)
                     obj.examples(m) = [];
                     m = m - 1;
                 end

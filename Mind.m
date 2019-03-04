@@ -53,11 +53,12 @@ classdef Mind < handle
                 /obj.layers(length(obj.layers) - 1).num_neurons;
         end
         
-        function train(obj, num_epochs)
+        function train(obj, num_epochs, test_data)
             format long;
             v = waitbar(0, 'Training...');
             error_list_train = zeros(1, num_epochs*ceil(obj.sample_size/obj.batch_size));
             error_list_validate = zeros(1, num_epochs*ceil(obj.sample_size/obj.batch_size));
+            error_list_test = zeros(1, num_epochs*ceil(obj.sample_size/obj.batch_size));
             
             features = reshape([obj.examples.train(1:obj.sample_size).features],...
                 [length(obj.examples.train(1).features) obj.sample_size])';
@@ -109,6 +110,7 @@ classdef Mind < handle
 
                     error_list_train(m*length(batches) + k - 1) = error;
                     error_list_validate(m*length(batches) + k - 1) = obj.validate;
+                    error_list_test(m*length(batches) + k - 1) = obj.test(test_data);
                 end
             end
             figure; hold on;
@@ -117,7 +119,8 @@ classdef Mind < handle
             ylabel("Error");
             xlabel("Epochs");
             plot(error_list_validate, 'r');
-            legend("Training Error", "Validation Error");
+            plot(error_list_test, 'g');
+            legend("Training Error", "Validation Error", "Test Error");
             close(v);
         end
         
@@ -146,14 +149,24 @@ classdef Mind < handle
 %                 [length(obj.examples.validate(1).features) length(obj.examples.validate)])', false))) %#ok
 %         end
         
-        function test(obj, data)
-            labels = reshape([data.examples.labels], [length(data.examples(1).labels) length(data.examples)])' %#ok
+        function test_error = test(obj, data)
+            labels = reshape([data.examples.labels], [length(data.examples(1).labels) length(data.examples)])';
             
             predictions = obj.infer(reshape([data.examples.features],...
-                [length(data.examples(1).features) length(data.examples)])', false) %#ok
+                [length(data.examples(1).features) length(data.examples)])', false);
             
-            error = abs(labels - predictions)./labels %#ok
-            mean_error = mean(error) %#ok
+            error = abs(labels - predictions);
+            test_error = mean(error);
+        end
+        
+        function test_error = test2(obj, data)
+            labels = reshape([data.examples.labels], [length(data.examples(1).labels) length(data.examples)])'
+            
+            predictions = obj.infer(reshape([data.examples.features],...
+                [length(data.examples(1).features) length(data.examples)])', false)
+            
+            error = abs(labels - predictions)
+            test_error = mean(error)
         end
 
         function y = infer(obj, features, descale)
