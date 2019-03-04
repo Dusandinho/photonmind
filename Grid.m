@@ -31,8 +31,6 @@ classdef Grid < handle
             labels = reshape([obj.examples.labels], [sqrt(length(obj.examples)) sqrt(length(obj.examples))]);
             h = heatmap(round(unique(features(:, 1))*1e9, 3, 'significant'),...
                 round(flipud(unique(features(:, 2))), 2), flipud(labels));
-            h.XLabel = 'Etch Depth (nm)';
-            h.YLabel = 'Duty Cycle (a.u.)';
         end
         
         function map_mind(obj)
@@ -40,8 +38,6 @@ classdef Grid < handle
             features = reshape([obj.examples.features], [length(obj.examples(1).features) length(obj.examples)])';
             h = heatmap(round(unique(features(:, 1))*1e9, 3, 'significant'),...
                 round(flipud(unique(features(:, 2))), 2), flipud(predictions));
-            h.XLabel = 'Etch Depth (nm)';
-            h.YLabel = 'Duty Cycle (a.u.)';
         end
         
         function map_mind_accuracy(obj)
@@ -49,8 +45,6 @@ classdef Grid < handle
             features = reshape([obj.examples.features], [length(obj.examples(1).features) length(obj.examples)])';
             h = heatmap(round(unique(features(:, 1))*1e9, 3, 'significant'),...
                 round(flipud(unique(features(:, 2))), 2), flipud(accuracy));
-            h.XLabel = 'Etch Depth (nm)';
-            h.YLabel = 'Duty Cycle (a.u.)';
         end
     end
 end
