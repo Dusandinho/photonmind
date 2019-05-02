@@ -1,6 +1,6 @@
 classdef Particle < handle
     properties
-        inputs = struct('structure', {}, 'parameter', {}, 'range', {})
+        parameters = struct('structure', {}, 'parameter', {}, 'range', {})
         position
         best_position
         FOM
@@ -9,14 +9,19 @@ classdef Particle < handle
     end
     methods
         function obj = Particle
-            % for the lack of a better method for now, manually enter inputs here
-            obj.inputs(end + 1) = struct('structure', {''}, 'parameter', {''}, 'range', {[0 0]});
-            
-            for n = 1:length(obj.inputs)
-                obj.position(end + 1) = obj.inputs(n).range(1) + (obj.inputs(n).range(2) - obj.inputs(n).range(1))*rand;
+            for n = 1:length(obj.parameters)
+                obj.position(end + 1) = obj.parameters(n).range(1) + (obj.parameters(n).range(2) - obj.parameters(n).range(1))*rand;
             end
             obj.best_position = obj.position;
             obj.velocity = zeros(size(obj.position));
+        end
+
+        function add_parameter(obj, structure, parameter, range)
+            obj.parameters(end + 1) = struct('structure', {structure}, 'parameter', {parameter}, 'range', {range});
+        end
+
+        function remove_parameters(obj, index)
+            obj.parameters(index) = [];
         end
     end
 end

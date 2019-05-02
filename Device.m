@@ -14,7 +14,8 @@ classdef Device < handle
         % constants keep certain features locked in the sweep solver
         % these next two methods add and remove constants by indexing
         function add_constant(obj, index, constant)
-            if index > length(obj.model.inputs), error('Index out of input range'); end
+            if index > length(obj.model.inputs),...
+                    error('Index out of input range'); end
             obj.constants(index).value = constant;
         end
 
@@ -32,7 +33,8 @@ classdef Device < handle
         % the user picks a value and some tolerance they will allow
         % these next two methods add and remove constants by indexing
         function add_condition(obj, index, value, tolerance)
-            if index > length(obj.model.outputs), error('Index out of output range'); end
+            if index > length(obj.model.outputs),...
+                    error('Index out of output range'); end
             obj.conditions(index).value = value;
             obj.conditions(index).tolerance = tolerance;
         end
@@ -50,7 +52,8 @@ classdef Device < handle
         % simple parametric sweep that finds all device matches
         % sweep size grows exponentially with resolution
         function solve(obj, resolution)
-            if isempty(obj.conditions), error('Must have at least one condition to solve for'); end
+            if isempty(obj.conditions),...
+                    error('Must have at least one condition to solve for'); end
             v = waitbar(0, 'Solving...');
 
             obj.matches = {};
@@ -68,15 +71,18 @@ classdef Device < handle
             close(v);
         end
 
-        % allows the user to set the features of this device from the generated list of matches
+        % allows the user to set the features of this device from the
+        % generated list of matches
         function set_features(obj, match_num)
-            if ~ismember(match_num, 1:length(obj.matches)), error('Match number out of range'); end
+            if ~ismember(match_num, 1:length(obj.matches)),...
+                    error('Match number out of range'); end
             obj.features = cell2mat(obj.matches(match_num));
         end
 
         % predicts the output based on the selected features of the device
         function run(obj)
-            if isempty(obj.features), error('No features have been set for this device'); end
+            if isempty(obj.features),...
+                    error('No features have been set for this device'); end
             y = obj.model.infer(obj.features);
             for n = 1:length(obj.model.outputs)
                 disp([obj.model.outputs(n).attribute, ' = ', num2str(y(n))]);
@@ -89,8 +95,9 @@ classdef Device < handle
             for n = 1:length(obj.model.inputs)
                 sequence = linspace(obj.model.inputs(n).range(1),...
                 obj.model.inputs(n).range(2), resolution);
-                sequence = repmat(sequence, [resolution^(length(obj.model.inputs) - n), 1]);
-                featureset(n, :) = repmat(sequence(:), [resolution^(n - 1), 1]); %#ok
+                sequence = repmat(sequence,...
+                    [resolution^(length(obj.model.inputs) - n), 1]);
+                featureset(n, :) = repmat(sequence(:), [resolution^(n - 1), 1]);
             end
 
             for n = 1:length(obj.constants)
@@ -106,21 +113,24 @@ classdef Device < handle
         function y = check_conditions(obj, labels)
             y = true;
             for n = 1:length(obj.conditions)
-                if abs(labels(n) - obj.conditions(n).value) > abs(obj.conditions(n).tolerance)
+                if abs(labels(n) - obj.conditions(n).value)...
+                        > abs(obj.conditions(n).tolerance)
                     y = false;
                 end
             end
         end
-        
+
         % print information about the found device
         function print_device(obj, features, labels)
             fprintf('\n');
             disp(['Match #', num2str(length(obj.matches))]);
             for n = 1:length(obj.model.inputs)
-                disp([obj.model.inputs(n).parameter, ' = ', num2str(features(n))]);
+                disp([obj.model.inputs(n).parameter, ' = ',...
+                    num2str(features(n))]);
             end
             for n = 1:length(obj.model.outputs)
-                disp([obj.model.outputs(n).attribute, ' = ', num2str(labels(n))]);
+                disp([obj.model.outputs(n).attribute, ' = ',...
+                    num2str(labels(n))]);
             end
         end
     end
